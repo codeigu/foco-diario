@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>FocoDiário</title>
+  <style>
+    body { font-family: Arial; max-width: 600px; margin: auto; }
+    .task { display: flex; justify-content: space-between; margin: 5px 0; }
+    .done { text-decoration: line-through; color: gray; }
+    button { cursor: pointer; }
+  </style>
+</head>
+<body>
+
+<h1>FocoDiário 🚀</h1>
+
+<input id="name" placeholder="Seu nome" />
+<button onclick="start()">Começar</button>
+
+<div id="app" style="display:none;">
+  <h2 id="welcome"></h2>
+
+  <input id="taskInput" placeholder="Nova tarefa" />
+  <button onclick="addTask()">Adicionar</button>
+
+  <div id="tasks"></div>
+
+  <h3>🏅 Selos: <span id="badges">0</span></h3>
+  <h3>🔥 Melhor dia: <span id="bestDay">0</span> tarefas</h3>
+
+  <button onclick="save()">Salvar Progresso</button>
+</div>
+
+<script>
+let tasks = [];
+let completed = 0;
+let username = "";
+
+function start() {
+  username = document.getElementById("name").value;
+  if (!username) return alert("Digite seu nome");
+
+  document.getElementById("welcome").innerText = "Olá, " + username;
+  document.getElementById("app").style.display = "block";
+  loadHistory();
+}
+
+function addTask() {
+  const input = document.getElementById("taskInput");
+  if (!input.value) return;
+
+  const task = { text: input.value, done: false };
+  tasks.push(task);
+  input.value = "";
+  render();
+}
+
+function render() {
+  const container = document.getElementById("tasks");
+  container.innerHTML = "";
+
+  tasks.forEach((task, index) => {
+    const div = document.createElement("div");
+    div.className = "task";
+
+    const span = document.createElement("span");
+    span.innerText = task.text;
+    if (task.done) span.classList.add("done");
+
+    const btn = document.createElement("button");
+    btn.innerText = "✔";
+    btn.onclick = () => completeTask(index);
+
+    div.appendChild(span);
+    div.appendChild(btn);
+    container.appendChild(div);
+  });
+}
+
+function completeTask(index) {
+  if (!tasks[index].done) {
+    tasks[index].done = true;
+    completed++;
+    document.getElementById("badges").innerText = completed;
+  }
+  render();
+}
+
+function save() {
+  fetch("/save", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: username, tasksCompleted: completed })
+  })
+  .then(res => res.json())
+  .then(() => {
+    alert("Progresso salvo!");
+    loadHistory();
+  });
+}
+
+function loadHistory() {
+  fetch("/history/" + username)
+    .then(res => res.json())
+    .then(data => {
+      let best = 0;
+      Object.values(data).forEach(v => {
+        if (v > best) best = v;
+      });
+      document.getElementById("bestDay").innerText = best;
+    });
+}
+</script>
+
+</body>
+</html>
